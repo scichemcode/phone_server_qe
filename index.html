@@ -970,7 +970,7 @@ curl http://100.83.65.14:5000/jobs
 curl http://&lt;PHONE_IP&gt;:5000/jobs
 
 <span class="comment"># Upload input file</span>
-curl -X POST http://&lt;PHONE_IP&gt;:5000/upload -F "file=@si.in"
+curl -X POST http://&lt;PHONE_IP&gt;:5000/upload -F "<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="187e71747d25586b71367176">[email&#160;protected]</a>"
 
 <span class="comment"># Submit QE job</span>
 curl -X POST http://&lt;PHONE_IP&gt;:5000/submit \
@@ -1037,8 +1037,54 @@ K_POINTS {automatic}
 
 <footer>
   <p>Built with Termux, Quantum Espresso, Redis, Flask & Tailscale on Android ARM64</p>
-  <p style="margin-top:8px; opacity:0.6;">Next steps: DeePMD-kit ML force fields • External HDD storage • Multi-node setup</p>
+
+  <div style="margin-top:24px; display:flex; justify-content:center; gap:32px; flex-wrap:wrap;">
+    <div style="text-align:center;">
+      <div style="font-size:1.6rem; font-weight:700; color:#e2e8f0;" id="gc-total">—</div>
+      <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; opacity:0.5; margin-top:4px;">Total Visits</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="font-size:1.6rem; font-weight:700; color:#e2e8f0;" id="gc-today">—</div>
+      <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; opacity:0.5; margin-top:4px;">Visits Today</div>
+    </div>
+  </div>
+
+  <p style="margin-top:16px; opacity:0.4; font-size:0.78rem;">
+    <a href="https://scichemcode.goatcounter.com" target="_blank" style="color:#64748b;">Analytics by GoatCounter</a>
+    &nbsp;·&nbsp;
+    <a href="https://scichemcode.goatcounter.com/settings#tab-ignore" target="_blank" style="color:#64748b;">Exclude my visits</a>
+  </p>
 </footer>
+
+<!-- GoatCounter tracking (self-visit exclusion via the link above) -->
+<script data-goatcounter="https://scichemcode.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+
+<!-- Fetch visit counts from GoatCounter public API -->
+<script>
+  async function loadStats() {
+    try {
+      const res = await fetch('https://scichemcode.goatcounter.com/api/v0/stats/total', {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.total !== undefined) {
+        document.getElementById('gc-total').textContent = data.total.toLocaleString();
+      }
+
+      // Today's count
+      const today = new Date().toISOString().slice(0, 10);
+      const res2 = await fetch(`https://scichemcode.goatcounter.com/api/v0/stats/hits?start=${today}&end=${today}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      if (!res2.ok) return;
+      const data2 = await res2.json();
+      const todayCount = (data2.hits || []).reduce((sum, h) => sum + (h.count || 0), 0);
+      document.getElementById('gc-today').textContent = todayCount.toLocaleString();
+    } catch(e) {}
+  }
+  loadStats();
+</script>
 
 </body>
 </html>
