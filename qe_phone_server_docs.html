@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Android Phone as a QE Job Server</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --accent: #7c3aed;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --code-bg: #1e293b;
+    --success: #16a34a;
+    --warning: #d97706;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  /* Header */
+  header {
+    background: linear-gradient(135deg, #1e293b 0%, #2563eb 60%, #7c3aed 100%);
+    color: white;
+    padding: 60px 40px;
+    text-align: center;
+  }
+
+  header .badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    letter-spacing: 0.5px;
+  }
+
+  header h1 {
+    font-size: 2.8rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+
+  header p {
+    font-size: 1.15rem;
+    opacity: 0.85;
+    max-width: 600px;
+    margin: 0 auto 24px;
+  }
+
+  .header-stats {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+
+  .header-stat {
+    text-align: center;
+  }
+
+  .header-stat .value {
+    font-size: 1.8rem;
+    font-weight: 700;
+  }
+
+  .header-stat .label {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* Layout */
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  /* TOC */
+  .toc {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 40px;
+  }
+
+  .toc h2 {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .toc ol {
+    padding-left: 20px;
+  }
+
+  .toc li {
+    margin-bottom: 8px;
+  }
+
+  .toc a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .toc a:hover { text-decoration: underline; }
+
+  /* Section */
+  .section {
+    margin-bottom: 48px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+
+  .section-number {
+    background: var(--primary);
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .section h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+
+  /* Code blocks */
+  pre {
+    background: var(--code-bg);
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 20px;
+    overflow-x: auto;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    margin: 12px 0;
+    position: relative;
+  }
+
+  code {
+    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+  }
+
+  p code, li code {
+    background: #f1f5f9;
+    color: #7c3aed;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.875em;
+  }
+
+  .comment { color: #94a3b8; }
+  .keyword { color: #93c5fd; }
+  .string { color: #86efac; }
+  .command { color: #fde68a; }
+
+  /* Labels */
+  .label {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    margin-bottom: 8px;
+  }
+
+  .label-phone { background: #dbeafe; color: #1d4ed8; }
+  .label-laptop { background: #dcfce7; color: #15803d; }
+  .label-both { background: #f3e8ff; color: #7e22ce; }
+
+  /* Steps */
+  .steps { list-style: none; }
+  .steps li {
+    padding: 10px 0 10px 36px;
+    position: relative;
+    border-left: 2px solid var(--border);
+    margin-left: 10px;
+    padding-left: 24px;
+  }
+
+  .steps li::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: var(--primary);
+    border-radius: 50%;
+    position: absolute;
+    left: -6px;
+    top: 16px;
+  }
+
+  /* Info boxes */
+  .info-box {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .info-box.note { background: #eff6ff; border-left: 4px solid #3b82f6; }
+  .info-box.warning { background: #fffbeb; border-left: 4px solid #f59e0b; }
+  .info-box.success { background: #f0fdf4; border-left: 4px solid #22c55e; }
+
+  .info-box .icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+  .info-box p { margin: 0; font-size: 0.92rem; }
+
+  /* Architecture diagram */
+  .arch-diagram {
+    background: var(--code-bg);
+    color: #e2e8f0;
+    border-radius: 12px;
+    padding: 28px;
+    font-family: monospace;
+    font-size: 0.88rem;
+    line-height: 1.8;
+    text-align: center;
+  }
+
+  .arch-diagram .box {
+    display: inline-block;
+    border: 1px solid #475569;
+    border-radius: 6px;
+    padding: 8px 16px;
+    margin: 4px;
+    color: #93c5fd;
+    font-weight: 600;
+  }
+
+  .arch-diagram .arrow { color: #64748b; }
+
+  /* Stack grid */
+  .stack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  .stack-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stack-item .icon { font-size: 2rem; margin-bottom: 8px; }
+  .stack-item .name { font-weight: 600; font-size: 0.95rem; }
+  .stack-item .desc { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+  /* Workflow */
+  .workflow {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .workflow-step {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+  }
+
+  .workflow-step .step-num {
+    background: var(--primary);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .workflow-step .step-text { font-size: 0.92rem; }
+  .workflow-step .step-text strong { display: block; font-weight: 600; }
+  .workflow-step .step-text span { color: var(--muted); font-size: 0.85rem; }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.9rem;
+  }
+
+  th {
+    background: #f1f5f9;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border);
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  /* Checklist */
+  .checklist { list-style: none; }
+  .checklist li {
+    padding: 6px 0;
+    padding-left: 28px;
+    position: relative;
+  }
+  .checklist li::before {
+    content: '✅';
+    position: absolute;
+    left: 0;
+    font-size: 0.9rem;
+  }
+
+  /* Footer */
+  footer {
+    background: var(--code-bg);
+    color: #94a3b8;
+    text-align: center;
+    padding: 32px;
+    font-size: 0.88rem;
+  }
+
+  footer a { color: #93c5fd; text-decoration: none; }
+
+  @media (max-width: 600px) {
+    header h1 { font-size: 1.8rem; }
+    .header-stats { gap: 20px; }
+    pre { font-size: 0.78rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">📱 Android → HPC Server</div>
+  <h1>Android Phone as a<br>Quantum Espresso Job Server</h1>
+  <p>A complete guide to turning an old Android phone into a remote DFT compute server with job submission, monitoring, and remote access.</p>
+  <div class="header-stats">
+    <div class="header-stat">
+      <div class="value">6</div>
+      <div class="label">CPU Cores</div>
+    </div>
+    <div class="header-stat">
+      <div class="value">7.2GB</div>
+      <div class="label">RAM</div>
+    </div>
+    <div class="header-stat">
+      <div class="value">~22s</div>
+      <div class="label">Si vc-relax</div>
+    </div>
+    <div class="header-stat">
+      <div class="value">ARM64</div>
+      <div class="label">Architecture</div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- TOC -->
+  <div class="toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><a href="#overview">Overview & Architecture</a></li>
+      <li><a href="#prerequisites">Prerequisites</a></li>
+      <li><a href="#ssh">Step 1: SSH Server Setup</a></li>
+      <li><a href="#jobqueue">Step 2: Job Queue (Redis + RQ)</a></li>
+      <li><a href="#api">Step 3: Flask REST API</a></li>
+      <li><a href="#qe">Step 4: Compile Quantum Espresso</a></li>
+      <li><a href="#workflow">Step 5: Full Job Submission Workflow</a></li>
+      <li><a href="#autostart">Step 6: Auto-Start on Boot</a></li>
+      <li><a href="#remote">Step 7: Remote Access via Tailscale</a></li>
+      <li><a href="#reference">Quick Reference</a></li>
+    </ol>
+  </div>
+
+  <!-- Section 1: Overview -->
+  <div class="section" id="overview">
+    <div class="section-header">
+      <div class="section-number">1</div>
+      <h2>Overview & Architecture</h2>
+    </div>
+
+    <p style="margin-bottom:20px;">This guide walks through setting up a complete DFT job submission system on an Android phone using Termux. The phone acts as a compute server — you submit jobs from your laptop, the phone runs them, and you download the results.</p>
+
+    <div class="arch-diagram">
+      <div style="margin-bottom:12px; color:#94a3b8; font-size:0.85rem;">SYSTEM ARCHITECTURE</div>
+      <div>
+        <span class="box">💻 Laptop</span>
+        <span class="arrow"> ──── HTTP / Tailscale VPN ────► </span>
+        <span class="box">📱 Phone (Flask API)</span>
+      </div>
+      <div style="margin: 8px 0; color:#64748b;">↓</div>
+      <div>
+        <span class="box">🔄 Redis Queue</span>
+        <span class="arrow"> ──────────────────────────► </span>
+        <span class="box">⚙️ RQ Worker</span>
+      </div>
+      <div style="margin: 8px 0; color:#64748b;">↓</div>
+      <div>
+        <span class="box">⚛️ pw.x (Quantum Espresso)</span>
+      </div>
+    </div>
+
+    <div class="stack-grid" style="margin-top:24px;">
+      <div class="stack-item">
+        <div class="icon">📱</div>
+        <div class="name">Termux</div>
+        <div class="desc">Linux environment on Android</div>
+      </div>
+      <div class="stack-item">
+        <div class="icon">🔄</div>
+        <div class="name">Redis + RQ</div>
+        <div class="desc">Job queue & worker</div>
+      </div>
+      <div class="stack-item">
+        <div class="icon">🌐</div>
+        <div class="name">Flask</div>
+        <div class="desc">REST API server</div>
+      </div>
+      <div class="stack-item">
+        <div class="icon">⚛️</div>
+        <div class="name">Quantum Espresso</div>
+        <div class="desc">DFT engine (ARM64)</div>
+      </div>
+      <div class="stack-item">
+        <div class="icon">🔒</div>
+        <div class="name">Tailscale</div>
+        <div class="desc">Remote VPN access</div>
+      </div>
+      <div class="stack-item">
+        <div class="icon">🚀</div>
+        <div class="name">Termux:Boot</div>
+        <div class="desc">Auto-start on reboot</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Prerequisites -->
+  <div class="section" id="prerequisites">
+    <div class="section-header">
+      <div class="section-number">2</div>
+      <h2>Prerequisites</h2>
+    </div>
+
+    <div class="card">
+      <h3>Phone Requirements</h3>
+      <ul style="padding-left:20px; margin-top:8px;">
+        <li>Android 7.0+ device</li>
+        <li>At least 4GB RAM (6GB+ recommended)</li>
+        <li>At least 10GB free storage</li>
+        <li>Termux installed from <strong>F-Droid</strong> (not Play Store)</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>Install from F-Droid</h3>
+      <p>Download and install these apps from <a href="https://f-droid.org" style="color:var(--primary);">f-droid.org</a>:</p>
+      <ul style="padding-left:20px; margin-top:8px;">
+        <li><strong>Termux</strong> — main terminal app</li>
+        <li><strong>Termux:Boot</strong> — for auto-start on reboot</li>
+      </ul>
+    </div>
+
+    <div class="info-box warning">
+      <div class="icon">⚠️</div>
+      <p><strong>Important:</strong> Do not install Termux from the Play Store — it is outdated. Always use the F-Droid version.</p>
+    </div>
+
+    <div class="card">
+      <h3>Battery Optimization (Critical)</h3>
+      <p>Go to <strong>Settings → Apps → Termux → Battery → Unrestricted</strong><br>
+      Do the same for <strong>Termux:Boot</strong>. This prevents Android from killing the server.</p>
+    </div>
+  </div>
+
+  <!-- Section 3: SSH -->
+  <div class="section" id="ssh">
+    <div class="section-header">
+      <div class="section-number">3</div>
+      <h2>Step 1: SSH Server Setup</h2>
+    </div>
+
+    <span class="label label-phone">📱 On Phone (Termux)</span>
+
+    <pre><code><span class="comment"># Update packages</span>
+pkg update && pkg upgrade -y
+
+<span class="comment"># Install SSH server</span>
+pkg install openssh -y
+
+<span class="comment"># Set a password</span>
+passwd
+
+<span class="comment"># Start SSH server</span>
+sshd</code></pre>
+
+    <span class="label label-laptop">💻 From Laptop</span>
+
+    <pre><code><span class="comment"># Connect to phone (default port 8022)</span>
+ssh -p 8022 192.168.1.46</code></pre>
+
+    <div class="info-box note">
+      <div class="icon">ℹ️</div>
+      <p>Find your phone's IP by running <code>ifconfig</code> in Termux or checking your router's connected devices.</p>
+    </div>
+  </div>
+
+  <!-- Section 4: Job Queue -->
+  <div class="section" id="jobqueue">
+    <div class="section-header">
+      <div class="section-number">4</div>
+      <h2>Step 2: Job Queue (Redis + RQ)</h2>
+    </div>
+
+    <span class="label label-phone">📱 On Phone (via SSH)</span>
+
+    <pre><code><span class="comment"># Install dependencies</span>
+pkg install redis python -y
+pip install flask rq
+
+<span class="comment"># Start Redis</span>
+redis-server --daemonize yes
+
+<span class="comment"># Test Redis</span>
+redis-cli ping
+<span class="comment"># Should return: PONG</span></code></pre>
+
+    <pre><code><span class="comment"># Create project directory</span>
+mkdir ~/jobserver && cd ~/jobserver
+
+<span class="comment"># Create tasks.py</span>
+cat > tasks.py << 'EOF'
+import time, subprocess
+
+def sleep_job(seconds):
+    time.sleep(seconds)
+    return f"Slept {seconds}s"
+
+def run_script(script_path, args=None):
+    cmd = ["bash", script_path] + (args or [])
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    return {"stdout": result.stdout, "stderr": result.stderr, "code": result.returncode}
+
+def run_qe(input_file, output_file=None):
+    if output_file is None:
+        output_file = input_file.replace('.in', '.out')
+    pw = '/data/data/com.termux/files/home/q-e/bin/pw.x'
+    result = subprocess.run(
+        [pw, '-i', input_file],
+        stdout=open(output_file, 'w'),
+        stderr=subprocess.PIPE,
+        text=True
+    )
+    return {
+        "output_file": output_file,
+        "returncode": result.returncode,
+        "stderr": result.stderr
+    }
+EOF</code></pre>
+  </div>
+
+  <!-- Section 5: Flask API -->
+  <div class="section" id="api">
+    <div class="section-header">
+      <div class="section-number">5</div>
+      <h2>Step 3: Flask REST API</h2>
+    </div>
+
+    <span class="label label-phone">📱 On Phone (via SSH)</span>
+
+    <pre><code><span class="comment"># Create server.py using Python</span>
+python3 -c "
+content = '''from flask import Flask, request, jsonify, send_file
+from rq import Queue
+from rq.job import Job
+from redis import Redis
+import tasks, os
+
+app = Flask(__name__)
+conn = Redis()
+q = Queue(connection=conn)
+UPLOAD_DIR = \"/data/data/com.termux/files/home/qe_jobs\"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@app.route(\"/upload\", methods=[\"POST\"])
+def upload():
+    if \"file\" not in request.files:
+        return jsonify({\"error\": \"no file provided\"}), 400
+    f = request.files[\"file\"]
+    path = os.path.join(UPLOAD_DIR, f.filename)
+    f.save(path)
+    return jsonify({\"path\": path, \"message\": \"uploaded successfully\"})
+
+@app.route(\"/submit\", methods=[\"POST\"])
+def submit():
+    data = request.json
+    job_type = data.get(\"type\")
+    if job_type == \"qe\":
+        job = q.enqueue(tasks.run_qe, data[\"input\"], data.get(\"output\"), job_timeout=3600)
+    elif job_type == \"sleep\":
+        job = q.enqueue(tasks.sleep_job, data[\"seconds\"])
+    else:
+        return jsonify({\"error\": \"unknown job type\"}), 400
+    return jsonify({\"job_id\": job.id, \"status\": str(job.get_status())})
+
+@app.route(\"/status/<job_id>\", methods=[\"GET\"])
+def status(job_id):
+    job = Job.fetch(job_id, connection=conn)
+    return jsonify({\"id\": job.id, \"status\": str(job.get_status()), \"result\": job.result})
+
+@app.route(\"/jobs\", methods=[\"GET\"])
+def list_jobs():
+    queued = [j.id for j in q.get_jobs()]
+    return jsonify({\"queued\": queued, \"length\": len(q)})
+
+@app.route(\"/download\", methods=[\"GET\"])
+def download():
+    path = request.args.get(\"path\")
+    if not path:
+        return jsonify({\"error\": \"no path provided\"}), 400
+    try:
+        return send_file(path, as_attachment=True)
+    except Exception as e:
+        return jsonify({\"error\": str(e)}), 404
+
+if __name__ == \"__main__\":
+    app.run(host=\"0.0.0.0\", port=5000)
+'''
+open('/data/data/com.termux/files/home/jobserver/server.py', 'w').write(content)
+print('done')
+"</code></pre>
+
+    <pre><code><span class="comment"># Install tmux for managing multiple processes</span>
+pkg install tmux -y
+tmux new -s jobserver
+
+<span class="comment"># In tmux - split panes with Ctrl+B then %</span>
+<span class="comment"># Left pane: start RQ worker</span>
+cd ~/jobserver && rq worker
+
+<span class="comment"># Right pane: start Flask (Ctrl+B then right arrow)</span>
+cd ~/jobserver && python server.py</code></pre>
+
+    <div class="card">
+      <h3>API Endpoints</h3>
+      <table>
+        <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+        <tr><td>POST</td><td><code>/upload</code></td><td>Upload input file to phone</td></tr>
+        <tr><td>POST</td><td><code>/submit</code></td><td>Submit a job to the queue</td></tr>
+        <tr><td>GET</td><td><code>/status/&lt;job_id&gt;</code></td><td>Check job status</td></tr>
+        <tr><td>GET</td><td><code>/jobs</code></td><td>List queued jobs</td></tr>
+        <tr><td>GET</td><td><code>/download?path=...</code></td><td>Download output file</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Section 6: Quantum Espresso -->
+  <div class="section" id="qe">
+    <div class="section-header">
+      <div class="section-number">6</div>
+      <h2>Step 4: Compile Quantum Espresso</h2>
+    </div>
+
+    <div class="info-box warning">
+      <div class="icon">⏱️</div>
+      <p>Compilation takes 30–60 minutes. Keep the phone plugged in and make sure Termux stays active.</p>
+    </div>
+
+    <span class="label label-phone">📱 On Phone (via SSH)</span>
+
+    <pre><code><span class="comment"># Install build dependencies</span>
+pkg install cmake make clang flang openblas fftw patchelf llvm -y
+
+<span class="comment"># Install missing library fix</span>
+pkg install libandroid-complex-math -y
+ln -s /data/data/com.termux/files/usr/lib/libandroid-complex-math.so \
+      /data/data/com.termux/files/usr/lib/libandroid-complex-math.a
+
+<span class="comment"># Create symlinks for missing tools</span>
+ln -s /data/data/com.termux/files/usr/bin/llvm-ar \
+      /data/data/com.termux/files/usr/bin/ar
+ln -s /data/data/com.termux/files/usr/bin/flang \
+      /data/data/com.termux/files/usr/bin/gfortran
+
+<span class="comment"># Clone Quantum Espresso</span>
+cd ~ && git clone https://github.com/QEF/q-e.git
+cd ~/q-e</code></pre>
+
+    <pre><code><span class="comment"># Configure with flang</span>
+./configure F77=flang FC=flang
+
+<span class="comment"># Fix make.inc (remove duplicate compiler entries)</span>
+grep "^MPIF90\|^F90\|^LD" make.inc
+<span class="comment"># Ensure these are all set to 'flang' with no duplicates:</span>
+<span class="comment"># MPIF90 = flang</span>
+<span class="comment"># F90    = flang</span>
+<span class="comment"># LD     = flang</span>
+
+<span class="comment"># Fix lapack make.inc</span>
+sed -i 's/FORTRAN  = gfortran/FORTRAN  = flang/' ~/q-e/install/make_lapack.inc
+sed -i 's/OPTS     = -O3 -g/OPTS     =/' ~/q-e/install/make_lapack.inc
+sed -i 's/LOADOPTS = -g/LOADOPTS =/' ~/q-e/install/make_lapack.inc</code></pre>
+
+    <pre><code><span class="comment"># Build pw.x with all cores</span>
+make pw -j6 2>&1 | tail -20
+
+<span class="comment"># Verify binary exists</span>
+ls ~/q-e/bin/pw.x</code></pre>
+
+    <pre><code><span class="comment"># Download Silicon pseudopotential</span>
+mkdir -p ~/pseudo ~/out ~/qe_jobs
+wget https://pseudopotentials.quantum-espresso.org/upf_files/Si.pbe-n-rrkjus_psl.1.0.0.UPF \
+     -P ~/pseudo/</code></pre>
+
+    <div class="info-box success">
+      <div class="icon">✅</div>
+      <p>Test your installation: <code>~/q-e/bin/pw.x -i ~/si_vcrelax.in > ~/si_vcrelax.out 2>&1</code></p>
+    </div>
+  </div>
+
+  <!-- Section 7: Workflow -->
+  <div class="section" id="workflow">
+    <div class="section-header">
+      <div class="section-number">7</div>
+      <h2>Step 5: Full Job Submission Workflow</h2>
+    </div>
+
+    <p style="margin-bottom:16px;">Save this as <code>submit.py</code> on your laptop:</p>
+
+    <span class="label label-laptop">💻 On Laptop</span>
+
+    <pre><code><span class="keyword">import</span> requests, sys, time, os
+
+PHONE_URL = <span class="string">"http://100.83.65.14:5000"</span>  <span class="comment"># Your phone's Tailscale IP</span>
+
+<span class="keyword">def</span> upload_and_submit(input_file):
+    <span class="keyword">print</span>(f<span class="string">"Uploading {input_file}..."</span>)
+    <span class="keyword">with</span> open(input_file, <span class="string">'rb'</span>) <span class="keyword">as</span> f:
+        r = requests.post(f<span class="string">"{PHONE_URL}/upload"</span>, files={<span class="string">"file"</span>: f})
+    remote_path = r.json()[<span class="string">"path"</span>]
+    <span class="keyword">print</span>(f<span class="string">"Uploaded to: {remote_path}"</span>)
+
+    r = requests.post(f<span class="string">"{PHONE_URL}/submit"</span>, json={
+        <span class="string">"type"</span>: <span class="string">"qe"</span>, <span class="string">"input"</span>: remote_path
+    })
+    job_id = r.json()[<span class="string">"job_id"</span>]
+    <span class="keyword">print</span>(f<span class="string">"Job ID: {job_id}"</span>)
+
+    <span class="keyword">while</span> True:
+        r = requests.get(f<span class="string">"{PHONE_URL}/status/{job_id}"</span>)
+        status = r.json()[<span class="string">"status"</span>]
+        <span class="keyword">print</span>(f<span class="string">"Status: {status}"</span>)
+        <span class="keyword">if</span> <span class="string">"FINISHED"</span> <span class="keyword">in</span> status:
+            <span class="keyword">return</span> job_id, r.json()[<span class="string">"result"</span>][<span class="string">"output_file"</span>]
+        <span class="keyword">elif</span> <span class="string">"FAILED"</span> <span class="keyword">in</span> status:
+            sys.exit(<span class="string">"Job failed!"</span>)
+        time.sleep(<span class="string">5</span>)
+
+<span class="keyword">def</span> download_output(output_file):
+    local_file = os.path.basename(output_file)
+    r = requests.get(f<span class="string">"{PHONE_URL}/download"</span>, params={<span class="string">"path"</span>: output_file})
+    open(local_file, <span class="string">'wb'</span>).write(r.content)
+    <span class="keyword">print</span>(f<span class="string">"Saved to {local_file}"</span>)
+
+<span class="keyword">if</span> __name__ == <span class="string">"__main__"</span>:
+    job_id, output = upload_and_submit(sys.argv[<span class="string">1</span>])
+    download_output(output)
+    <span class="keyword">print</span>(<span class="string">"Done!"</span>)</code></pre>
+
+    <pre><code><span class="comment"># Usage</span>
+python3 submit.py my_calculation.in</code></pre>
+
+    <div class="workflow">
+      <div class="workflow-step">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <strong>Upload</strong>
+          <span>POST /upload — sends .in file to phone's ~/qe_jobs/</span>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <strong>Submit</strong>
+          <span>POST /submit — enqueues job in Redis</span>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <strong>Execute</strong>
+          <span>RQ worker picks up job, runs pw.x</span>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-num">4</div>
+        <div class="step-text">
+          <strong>Poll</strong>
+          <span>GET /status — checks every 5s until FINISHED</span>
+        </div>
+      </div>
+      <div class="workflow-step">
+        <div class="step-num">5</div>
+        <div class="step-text">
+          <strong>Download</strong>
+          <span>GET /download — retrieves output file to laptop</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 8: Auto-start -->
+  <div class="section" id="autostart">
+    <div class="section-header">
+      <div class="section-number">8</div>
+      <h2>Step 6: Auto-Start on Boot</h2>
+    </div>
+
+    <p style="margin-bottom:16px;">Install <strong>Termux:Boot</strong> from F-Droid, open it once, then create the boot script:</p>
+
+    <span class="label label-phone">📱 On Phone (via SSH)</span>
+
+    <pre><code>mkdir -p ~/.termux/boot
+
+cat > ~/.termux/boot/start_server.sh << 'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+termux-wake-lock
+sleep 10
+pkill -f "redis-server"
+pkill -f "rq worker"
+pkill -f "python server.py"
+sleep 2
+redis-server --daemonize yes
+sleep 2
+cd /data/data/com.termux/files/home/jobserver
+rq worker &
+sleep 2
+python server.py &
+EOF
+
+chmod +x ~/.termux/boot/start_server.sh</code></pre>
+
+    <div class="info-box note">
+      <div class="icon">ℹ️</div>
+      <p>The <code>sleep 10</code> gives Android time to fully boot before starting services. After phone restart, the server will be available in ~15 seconds.</p>
+    </div>
+  </div>
+
+  <!-- Section 9: Remote Access -->
+  <div class="section" id="remote">
+    <div class="section-header">
+      <div class="section-number">9</div>
+      <h2>Step 7: Remote Access via Tailscale</h2>
+    </div>
+
+    <p style="margin-bottom:16px;">Tailscale creates a secure VPN mesh so you can access your phone from anywhere without port forwarding.</p>
+
+    <span class="label label-laptop">💻 On Laptop</span>
+
+    <pre><code><span class="comment"># Install Tailscale</span>
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+<span class="comment"># Visit the URL shown to authenticate</span>
+
+<span class="comment"># Get your laptop's Tailscale IP</span>
+tailscale ip</code></pre>
+
+    <span class="label label-phone">📱 On Phone</span>
+    <p style="margin: 8px 0 16px;">Install <strong>Tailscale</strong> from the Play Store and log in with the same account.</p>
+
+    <span class="label label-laptop">💻 On Laptop — Test Remote Access</span>
+
+    <pre><code><span class="comment"># Replace with your phone's Tailscale IP (shown in Tailscale app)</span>
+curl http://100.83.65.14:5000/jobs
+<span class="comment"># Should return: {"length":0,"queued":[]}</span></code></pre>
+
+    <div class="info-box success">
+      <div class="icon">🎉</div>
+      <p>Once connected, update <code>PHONE_URL</code> in <code>submit.py</code> to your phone's Tailscale IP. You can now submit jobs from anywhere in the world!</p>
+    </div>
+  </div>
+
+  <!-- Section 10: Reference -->
+  <div class="section" id="reference">
+    <div class="section-header">
+      <div class="section-number">10</div>
+      <h2>Quick Reference</h2>
+    </div>
+
+    <div class="card">
+      <h3>Key Paths on Phone</h3>
+      <table>
+        <tr><th>Item</th><th>Path</th></tr>
+        <tr><td>QE Binary</td><td><code>~/q-e/bin/pw.x</code></td></tr>
+        <tr><td>Pseudopotentials</td><td><code>~/pseudo/</code></td></tr>
+        <tr><td>Job inputs</td><td><code>~/qe_jobs/</code></td></tr>
+        <tr><td>Job server</td><td><code>~/jobserver/</code></td></tr>
+        <tr><td>Boot script</td><td><code>~/.termux/boot/start_server.sh</code></td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>Common curl Commands</h3>
+      <pre><code><span class="comment"># Check server status</span>
+curl http://&lt;PHONE_IP&gt;:5000/jobs
+
+<span class="comment"># Upload input file</span>
+curl -X POST http://&lt;PHONE_IP&gt;:5000/upload -F "file=@si.in"
+
+<span class="comment"># Submit QE job</span>
+curl -X POST http://&lt;PHONE_IP&gt;:5000/submit \
+  -H "Content-Type: application/json" \
+  -d '{"type": "qe", "input": "/path/to/input.in"}'
+
+<span class="comment"># Check job status</span>
+curl http://&lt;PHONE_IP&gt;:5000/status/&lt;job_id&gt;
+
+<span class="comment"># Download output</span>
+curl "http://&lt;PHONE_IP&gt;:5000/download?path=/path/to/output.out" -o output.out</code></pre>
+    </div>
+
+    <div class="card">
+      <h3>Sample Silicon vc-relax Input</h3>
+      <pre><code>&CONTROL
+  calculation = 'vc-relax'
+  prefix = 'silicon'
+  outdir = '/data/data/com.termux/files/home/out'
+  pseudo_dir = '/data/data/com.termux/files/home/pseudo'
+/
+&SYSTEM
+  ibrav = 2
+  celldm(1) = 10.2
+  nat = 2
+  ntyp = 1
+  ecutwfc = 30.0
+  ecutrho = 120.0
+/
+&ELECTRONS
+  conv_thr = 1.0e-8
+/
+&IONS
+  ion_dynamics = 'bfgs'
+/
+&CELL
+  cell_dynamics = 'bfgs'
+/
+ATOMIC_SPECIES
+  Si 28.086 Si.pbe-n-rrkjus_psl.1.0.0.UPF
+ATOMIC_POSITIONS {alat}
+  Si 0.00 0.00 0.00
+  Si 0.25 0.25 0.25
+K_POINTS {automatic}
+  4 4 4 0 0 0</code></pre>
+    </div>
+
+    <div class="card">
+      <h3>Completed Checklist</h3>
+      <ul class="checklist">
+        <li>SSH server running on port 8022</li>
+        <li>Redis + RQ job queue configured</li>
+        <li>Flask REST API with upload/submit/status/download endpoints</li>
+        <li>Quantum Espresso compiled from source on ARM64</li>
+        <li>Silicon vc-relax test calculation (~22 seconds)</li>
+        <li>Auto-start on boot via Termux:Boot</li>
+        <li>Remote access from anywhere via Tailscale</li>
+        <li>Python submission script on laptop</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>Built with Termux, Quantum Espresso, Redis, Flask & Tailscale on Android ARM64</p>
+  <p style="margin-top:8px; opacity:0.6;">Next steps: DeePMD-kit ML force fields • External HDD storage • Multi-node setup</p>
+</footer>
+
+</body>
+</html>
